@@ -1,4 +1,4 @@
--- Внешний вид: родные шаблоны клиента + скин EllesmereUI, когда EUI красит окна игры.
+-- Look and feel: native client templates + the EllesmereUI skin when EUI paints game windows.
 local _, BB = ...
 
 local MEDIA = "Interface\\AddOns\\BagBroker\\media\\"
@@ -38,14 +38,6 @@ function BB.UseEUISkin()
     if mode == "native" then return false end
     if mode == "eui" then return true end
     return EUIPaintsWindows()
-end
-
-function BB.StyleDescription()
-    local look = ActiveEUILook()
-    if not look then return "как окна игры (EllesmereUI не найден)" end
-    if BB.UseEUISkin() then return "скин EllesmereUI (облик " .. look .. ")" end
-    if not skinS and EUIPaintsWindows() then return "как окна игры (скины сторонних аддонов в EllesmereUI выключены)" end
-    return "как окна игры (облик EllesmereUI: " .. look .. ")"
 end
 
 local function Apply(kind, obj, opts)
@@ -331,7 +323,7 @@ function BB.SetTabText(f, key, text)
     end
 end
 
--- defs: { {key, label}, ... }; label может быть функцией (для счётчиков).
+-- defs: { {key, label}, ... }; label may be a function (for counters).
 function BB.Segmented(parent, defs, w, get, set)
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(#defs * w + (#defs - 1) * 2, 20)

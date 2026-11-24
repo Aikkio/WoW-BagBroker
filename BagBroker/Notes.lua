@@ -1,6 +1,7 @@
--- Приписки к предметам («квестовый предмет», «для: Портняжное дело», «хуже надетого»...)
--- и пресеты защиты, которые на них опираются.
+-- Item notes ("quest item", "for: Tailoring", "worse than equipped"...)
+-- and the protection presets built on them.
 local _, BB = ...
+local L = BB.L
 
 local CLASS_CONSUMABLE, CLASS_WEAPON, CLASS_ARMOR = 0, 2, 4
 local CLASS_TRADEGOODS, CLASS_CURRENCY, CLASS_QUEST, CLASS_KEY = 7, 10, 12, 13
@@ -8,28 +9,37 @@ local WEAPON_FISHING = 20
 
 local COLOR = { guard = "ffd100", good = "6fd16f", bad = "ff8a5c", info = "a0a0a0", auc = "9ed1f5" }
 
-local PROF = { -- skillLine -> имя по умолчанию и английское (для старого API навыков)
-    [129] = { "Первая помощь", "First Aid" },   [164] = { "Кузнечное дело", "Blacksmithing" },
-    [165] = { "Кожевничество", "Leatherworking" }, [171] = { "Алхимия", "Alchemy" },
-    [182] = { "Травничество", "Herbalism" },    [185] = { "Кулинария", "Cooking" },
-    [186] = { "Горное дело", "Mining" },        [197] = { "Портняжное дело", "Tailoring" },
-    [202] = { "Инженерное дело", "Engineering" }, [333] = { "Наложение чар", "Enchanting" },
-    [356] = { "Рыбная ловля", "Fishing" },      [393] = { "Снятие шкур", "Skinning" },
-    [755] = { "Ювелирное дело", "Jewelcrafting" }, [773] = { "Начертание", "Inscription" },
+local PROF = { -- skillLine -> { enUS, esES, ruRU } names (default labels and lookup for the old skills API)
+    [129] = { "First Aid", "Primeros auxilios", "Первая помощь" },
+    [164] = { "Blacksmithing", "Herrería", "Кузнечное дело" },
+    [165] = { "Leatherworking", "Peletería", "Кожевничество" },
+    [171] = { "Alchemy", "Alquimia", "Алхимия" },
+    [182] = { "Herbalism", "Herboristería", "Травничество" },
+    [185] = { "Cooking", "Cocina", "Кулинария" },
+    [186] = { "Mining", "Minería", "Горное дело" },
+    [197] = { "Tailoring", "Sastrería", "Портняжное дело" },
+    [202] = { "Engineering", "Ingeniería", "Инженерное дело" },
+    [333] = { "Enchanting", "Encantamiento", "Наложение чар" },
+    [356] = { "Fishing", "Pesca", "Рыбная ловля" },
+    [393] = { "Skinning", "Desuello", "Снятие шкур" },
+    [755] = { "Jewelcrafting", "Joyería", "Ювелирное дело" },
+    [773] = { "Inscription", "Inscripción", "Начертание" },
 }
-local known = {}   -- skillLine -> отображаемое имя
+local PROF_INDEX = { enUS = 1, esES = 2, ruRU = 3 }
+local function ProfName(line) return PROF[line][PROF_INDEX[BB.locale] or 1] end
+local known = {}   -- skillLine -> display name
 
 local function RefreshProfessions()
     wipe(known)
     if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
         for _, idx in pairs({ GetProfessions() }) do
             local ok, name, _, _, _, _, _, line = pcall(GetProfessionInfo, idx)
-            if ok and line and PROF[line] then known[line] = name or PROF[line][1] end
+            if ok and line and PROF[line] then known[line] = name or ProfName(line) end
         end
     end
     if next(known) == nil and type(GetNumSkillLines) == "function" and type(GetSkillLineInfo) == "function" then
         local byName = {}
-        for line, n in pairs(PROF) do byName[n[1]] = line; byName[n[2]] = line end
+        for line, names in pairs(PROF) do for _, n in ipairs(names) do byName[n] = line end end
         for i = 1, GetNumSkillLines() do
             local name, header = GetSkillLineInfo(i)
             if name and not header and byName[name] then known[byName[name]] = name end
@@ -39,19 +49,19 @@ end
 BB.KnownProfessions = function() return known end
 
 local REAGENT = {
-    [1]  = { "детали", { 202 } },
-    [4]  = { "самоцветы", { 755 } },
-    [5]  = { "ткань", { 197, 129 } },
-    [6]  = { "кожа", { 165 } },
-    [7]  = { "металл и камень", { 164, 202, 755 } },
-    [8]  = { "мясо", { 185 } },
-    [9]  = { "трава", { 171, 773 } },
-    [10] = { "стихии", { 164, 165, 197, 171, 202, 333 } },
-    [12] = { "чары", { 333 } },
-    [16] = { "начертание", { 773 } },
+    [1]  = { "parts", { 202 } },
+    [4]  = { "gems", { 755 } },
+    [5]  = { "cloth", { 197, 129 } },
+    [6]  = { "leather", { 165 } },
+    [7]  = { "metal and stone", { 164, 202, 755 } },
+    [8]  = { "meat", { 185 } },
+    [9]  = { "herbs", { 171, 773 } },
+    [10] = { "elements", { 164, 165, 197, 171, 202, 333 } },
+    [12] = { "enchanting reagents", { 333 } },
+    [16] = { "inscription", { 773 } },
 }
 
--- Инструменты профессий: itemID -> skillLine.
+-- Profession tools: itemID -> skillLine.
 local TOOL = {
     [2901] = 186, [5956] = 164, [7005] = 393, [6219] = 202, [20815] = 755, [39505] = 773,
     [6218] = 333, [6339] = 333, [11130] = 333, [11145] = 333, [16207] = 333,
@@ -62,7 +72,7 @@ local PVP = { [20558] = true, [20559] = true, [20560] = true, [29024] = true, [4
 local function IsPvPMark(it)
     if PVP[it.itemID] then return true end
     local n = it.name or ""
-    return n:find("Почетный знак") or n:find("Почётный знак") or n:find("Mark of Honor") or n:find("Знак чести")
+    return n:find("Почетный знак") or n:find("Почётный знак") or n:find("Mark of Honor") or n:find("Знак чести") or n:find("Marca de honor")
 end
 
 local SLOTS = {
@@ -83,7 +93,7 @@ local function ItemLevelOf(link, fallback)
     return fallback
 end
 
--- "empty" - слот пуст, "worse" - хуже всего надетого в этих слотах, nil - не хуже.
+-- "empty": slot is empty, "worse": worse than everything worn in these slots, nil: not worse.
 local function CompareEquipped(it)
     local slots = SLOTS[it.equipLoc or ""]
     if not slots then return nil end
@@ -109,53 +119,53 @@ function BB.Annotate(it)
 
     if it.aucWins and it.ahNet then
         local gain = it.ahNet - (it.vendor or 0) - BB.Deposit(it.sellPrice, it.count)
-        if gain > 0 then Add(it, "auc", "аукцион +" .. BB.Money(gain)) end
+        if gain > 0 then Add(it, "auc", L("auction +%s", BB.Money(gain))) end
     end
 
     if it.isQuest or it.classID == CLASS_QUEST then
-        Add(it, "guard", it.isQuest and "для задания" or "квестовый предмет", "quest")
+        Add(it, "guard", it.isQuest and L("for a quest") or L("quest item"), "quest")
     end
     if IsPvPMark(it) then
-        Add(it, "guard", "знак чести", "pvp")
+        Add(it, "guard", L("honor mark"), "pvp")
     elseif it.classID == CLASS_CURRENCY then
-        Add(it, "guard", "валюта", "pvp")
+        Add(it, "guard", L("currency"), "pvp")
     end
-    if it.hasLoot then Add(it, "guard", "можно открыть", "container") end
-    if it.classID == CLASS_KEY then Add(it, "guard", "ключ", "key") end
+    if it.hasLoot then Add(it, "guard", L("can be opened"), "container") end
+    if it.classID == CLASS_KEY then Add(it, "guard", L("key"), "key") end
     local tool = TOOL[it.itemID] or (it.classID == CLASS_WEAPON and it.subclassID == WEAPON_FISHING and 356)
-    if tool then Add(it, known[tool] and "good" or "guard", "инструмент: " .. (known[tool] or PROF[tool][1]), "tool") end
-    if it.inSet then Add(it, "guard", "комплект экипировки") end
+    if tool then Add(it, known[tool] and "good" or "guard", L("tool: %s", known[tool] or ProfName(tool)), "tool") end
+    if it.inSet then Add(it, "guard", L("equipment set")) end
 
     if it.classID == CLASS_TRADEGOODS then
         local r = REAGENT[it.subclassID or -1]
         if r then
             local mine
             for _, line in ipairs(r[2]) do if known[line] then mine = known[line]; break end end
-            if mine then Add(it, "good", "для: " .. mine, "reagent")
-            else Add(it, "info", r[1]) end
+            if mine then Add(it, "good", L("for: %s", mine), "reagent")
+            else Add(it, "info", L(r[1])) end
         end
     end
 
     local isGear = (it.classID == CLASS_ARMOR or it.classID == CLASS_WEAPON) and SLOTS[it.equipLoc or ""] and not tool
     if isGear then
         if BB.ClassCanUse and not BB.ClassCanUse(it) then
-            Add(it, "bad", "не для класса")
+            Add(it, "bad", L("not for your class"))
         elseif (it.reqLevel or 0) > plevel then
-            Add(it, "info", "с " .. it.reqLevel .. " ур.")
+            Add(it, "info", L("from lvl %d", it.reqLevel))
         else
             local cmp = CompareEquipped(it)
             if cmp == "empty" then
-                Add(it, "good", "слот пуст - можно надеть")
+                Add(it, "good", L("empty slot - can equip"))
             elseif cmp == "worse" then
                 local old = (it.reqLevel or 0) > 0 and (it.reqLevel + 10) <= plevel
-                Add(it, "bad", old and "устарела" or "хуже надетого")
+                Add(it, "bad", old and L("outdated") or L("worse than equipped"))
             end
         end
     end
 
     if it.classID == CLASS_CONSUMABLE and (it.subclassID == 5 or it.subclassID == 1) then
         local lvl = math.max(it.reqLevel or 0, it.itemLevel or 0)
-        if lvl > 0 and (lvl + 10) <= plevel then Add(it, "bad", it.subclassID == 5 and "слабая еда" or "слабое зелье") end
+        if lvl > 0 and (lvl + 10) <= plevel then Add(it, "bad", it.subclassID == 5 and L("weak food") or L("weak potion")) end
     end
 end
 
@@ -171,7 +181,7 @@ end
 
 function BB.NoteColor(kind) return COLOR[kind] or COLOR.info end
 
--- Строка приписок через « · ». skip - запись, которую не повторять.
+-- Notes joined with " · ". skip: a note not to repeat.
 function BB.NotesText(it, skip)
     if not it.notes or #it.notes == 0 then return "" end
     local t = {}
@@ -189,7 +199,7 @@ function BB.AddNotesToTooltip(tt, it)
     for _, n in ipairs(it.notes) do
         local hex = COLOR[n.kind] or COLOR.info
         local r, g, b = tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
-        local suffix = (n == guard) and " - не предлагается" or ""
+        local suffix = (n == guard) and L(" - not offered") or ""
         tt:AddLine(n.text .. suffix, r, g, b, true)
     end
 end
@@ -199,7 +209,7 @@ BB.On("SKILL_LINES_CHANGED", function() RefreshProfessions(); BB.Refresh() end)
 BB.On("PLAYER_EQUIPMENT_CHANGED", function() BB.Refresh() end)
 BB.On("PLAYER_LEVEL_UP", function() BB.Refresh() end)
 
--- Фильтр списков предложений: "all" | "vendor" (продать торговцу) | "auc" (выгоднее на аукционе).
+-- Offer list filter: "all" | "vendor" (sell to vendor) | "auc" (better at auction).
 function BB.FilterOffers(list, f)
     if f ~= "vendor" and f ~= "auc" then return list end
     local out = {}

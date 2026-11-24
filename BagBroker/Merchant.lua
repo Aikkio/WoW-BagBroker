@@ -1,5 +1,6 @@
--- Автопродажа у торговца и панель-чек справа от его окна.
+-- Auto-sell at the vendor and the receipt panel next to its window.
 local _, BB = ...
+local L = BB.L
 
 local session
 local ticker
@@ -45,7 +46,7 @@ Verify = function(final)
     end
     if final and live > 0 and live ~= session.reportedCount then
         session.reportedCount = live
-        BB.Print(("продано %d предм. на %s"):format(live, BB.Money(total)))
+        BB.Print(L("sold %d items for %s", live, BB.Money(total)))
     end
     BB.Refresh()
 end
@@ -56,7 +57,7 @@ local function Run()
     local queue, pending = BB.SellQueue(BB.ScanBags())
     session = { sold = {}, pending = pending }
     if #queue > 12 then
-        BB.Print(("к продаже %d предм.: вернуть через выкуп можно будет только последние 12."):format(#queue))
+        BB.Print(L("%d items queued: only the last 12 can be bought back.", #queue))
     end
     local i = 0
     if #queue == 0 then BB.Refresh(); return end
@@ -97,7 +98,7 @@ local function Undo(s)
             return
         end
     end
-    BB.Print("не нашёл предмет во вкладке «Выкуп»: " .. (s.link or s.name))
+    BB.Print(L("item not found in the Buyback tab: %s", s.link or s.name))
 end
 
 local PANEL_W, ROW_W, PROW_H, PEND_H, OROW_H = 300, 276, 22, 52, 36
@@ -121,7 +122,7 @@ local function CreatePanel()
     P.sub:SetPoint("RIGHT", P, "TOPRIGHT", -12, -44)
     P.sub:SetJustifyH("RIGHT")
 
-    BB.CreateTabs(P, { { "sold", "Автопродажа" }, { "offer", "Предложения" } }, SelectPanelTab)
+    BB.CreateTabs(P, { { "sold", L("Auto-sell") }, { "offer", L("Offers") } }, SelectPanelTab)
 
     local sv = CreateFrame("Frame", nil, P.Inset)
     sv:SetAllPoints()
@@ -131,11 +132,11 @@ local function CreatePanel()
     P.empty:SetPoint("TOPLEFT", 10, -12)
     P.empty:SetPoint("TOPRIGHT", -10, -12)
     P.empty:SetJustifyH("LEFT")
-    P.toOffers = BB.Button(sv, "К предложениям", 160, 22)
+    P.toOffers = BB.Button(sv, L("To offers"), 160, 22)
     P.toOffers:SetPoint("TOPLEFT", P.empty, "BOTTOMLEFT", 0, -10)
     P.toOffers:SetScript("OnClick", function() SelectPanelTab("offer") end)
 
-    P.undoAll = BB.Button(P, "Вернуть всё", 110, 22)
+    P.undoAll = BB.Button(P, L("Undo all"), 130, 22)
     P.undoAll:SetPoint("BOTTOMRIGHT", -8, 5)
     P.undoAll:SetScript("OnClick", function()
         if session then for _, s in ipairs(session.sold) do Undo(s) end end
@@ -145,9 +146,9 @@ local function CreatePanel()
     ov:SetAllPoints()
     P.offerView = ov
     P.filter = BB.Segmented(ov, {
-        { "all", "Все" },
-        { "vendor", "Торговцу" },
-        { "auc", function(n) return n > 0 and ("Аукцион (" .. n .. ")") or "Аукцион" end },
+        { "all", L("All") },
+        { "vendor", L("To vendor") },
+        { "auc", function(n) return n > 0 and L("Auction (%d)", n) or L("Auction") end },
     }, 88, function() return BB.cdb.offerFilter or "all" end, function(v) BB.cdb.offerFilter = v end)
     P.filter:SetPoint("TOP", 0, -6)
     P.oEmpty = BB.Text(ov, "GameFontDisable")
@@ -156,7 +157,7 @@ local function CreatePanel()
     P.oEmpty:SetJustifyH("LEFT")
     P.oMore = BB.Text(ov, "GameFontDisableSmall")
 
-    P.full = BB.Button(P, "Полное окно", 120, 22)
+    P.full = BB.Button(P, L("Full window"), 140, 22)
     P.full:SetPoint("BOTTOMRIGHT", -8, 5)
     P.full:SetScript("OnClick", function() BB.ShowTab("bags") end)
 
@@ -180,7 +181,7 @@ local function Row(i)
     r:SetSize(ROW_W, PROW_H)
     r.icon = BB.ItemIcon(r, 18)
     r.icon:SetPoint("LEFT", 2, 0)
-    r.undo = BB.GlyphButton(r, "undo", 20, "Выкупить обратно")
+    r.undo = BB.GlyphButton(r, "undo", 20, L("Buy back"))
     r.undo:SetPoint("RIGHT")
     r.price = BB.Text(r, "GameFontHighlightSmall")
     r.price:SetPoint("RIGHT", r.undo, "LEFT", -4, 0)
@@ -202,14 +203,14 @@ local function PendRow(i)
     r.bg:SetColorTexture(1, 0.82, 0, 0.06)
     r.label = BB.Text(r, "GameFontNormalSmall")
     r.label:SetPoint("TOPLEFT", 6, -4)
-    r.label:SetText("Ждёт решения")
+    r.label:SetText(L("Needs a decision"))
     r.name = BB.Text(r, "GameFontHighlightSmall")
     r.name:SetPoint("TOPLEFT", r.label, "TOPRIGHT", 6, 0)
     r.name:SetPoint("RIGHT", -6, 0)
     r.name:SetJustifyH("LEFT"); r.name:SetWordWrap(false)
-    r.sell = BB.Button(r, "Продать", 128, 20)
+    r.sell = BB.Button(r, L("Sell"), 128, 20)
     r.sell:SetPoint("BOTTOMLEFT", 4, 4)
-    r.keep = BB.Button(r, "Оставить", 128, 20)
+    r.keep = BB.Button(r, L("Keep"), 128, 20)
     r.keep:SetPoint("BOTTOMRIGHT", -4, 4)
     pendRows[i] = r
     return r
@@ -227,7 +228,7 @@ local function OfferRow(i)
     r.icon:SetPoint("LEFT", 2, 0)
     r.more = BB.GlyphButton(r, "down", 22)
     r.more:SetPoint("RIGHT", 0, 0)
-    r.act = BB.Button(r, "Продать", 82, 22)
+    r.act = BB.Button(r, L("Sell"), 82, 22)
     r.act:SetPoint("RIGHT", r.more, "LEFT", -3, 0)
     r.name = BB.Text(r, "GameFontHighlightSmall")
     r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 6, -2)
@@ -249,12 +250,11 @@ local function OfferRow(i)
     return r
 end
 
-local REASON = { ["1"] = "1", ["∞"] = "всегда", ["Х"] = "хлам", ["П"] = "правило", ["руч."] = "вручную" }
 
 local function FillSold(sold, pending, live)
     local isEmpty = #sold == 0 and #pending == 0
     P.empty:SetShown(isEmpty); P.toOffers:SetShown(isEmpty)
-    if isEmpty then P.empty:SetText(ticker and "Продаю..." or "Продавать нечего") end
+    if isEmpty then P.empty:SetText(ticker and L("Selling...") or L("Nothing to sell")) end
 
     local y = -6
     local maxRows = math.floor((P:GetHeight() - 88 - 12 - #pending * PEND_H - 18) / PROW_H)
@@ -267,14 +267,14 @@ local function FillSold(sold, pending, live)
             r.icon:SetAlpha(s.returned and 0.4 or 1)
             r.name:SetText(s.name .. (s.count > 1 and (" x" .. s.count) or ""))
             r.name:SetTextColor(cr, cg, cb, s.returned and 0.4 or 1)
-            r.price:SetText(s.returned and "|cff888888возвращён|r" or BB.Money(s.price))
+            r.price:SetText(s.returned and ("|cff888888" .. L("returned") .. "|r") or BB.Money(s.price))
             r.undo:SetShown(not s.returned)
             r.undo:SetEnabled(not (s.undoAt and GetTime() - s.undoAt < 2))
             r.undo:SetScript("OnClick", function() Undo(s) end)
             r:SetScript("OnEnter", function(self)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 if s.link then GameTooltip:SetHyperlink(s.link) end
-                GameTooltip:AddLine("Причина: " .. (REASON[s.reason] or "-"), 0.8, 0.8, 0.8)
+                GameTooltip:AddLine(L("Reason: %s", s.reason and L(s.reason) or "-"), 0.8, 0.8, 0.8)
                 GameTooltip:Show()
             end)
             r:SetScript("OnLeave", GameTooltip_Hide)
@@ -289,7 +289,7 @@ local function FillSold(sold, pending, live)
     local hidden = #sold - maxRows
     if hidden > 0 then
         P.more:ClearAllPoints(); P.more:SetPoint("TOPLEFT", 10, y - 2)
-        P.more:SetText("и ещё " .. hidden .. "..."); P.more:Show(); y = y - 18
+        P.more:SetText(L("and %d more...", hidden)); P.more:Show(); y = y - 18
     else
         P.more:Hide()
     end
@@ -329,14 +329,14 @@ local function FillOffers(all)
             local qr, qg, qb = C_Item.GetItemQualityColor(it.quality or 1)
             r.name:SetText(it.name)
             r.name:SetTextColor(qr or 1, qg or 1, qb or 1)
-            local price = it.hasNoValue and "|cff888888не купит|r" or BB.Money(it.vendor)
+            local price = it.hasNoValue and ("|cff888888" .. L("won't buy") .. "|r") or BB.Money(it.vendor)
             local notes = BB.NotesText(it)
             r.info:SetText(notes ~= "" and (price .. "|cff606060  ·  |r" .. notes) or price)
             local mark = BB.MarkOf(it.itemID)
             if it.hasNoValue then
-                r.act:SetText(BB.IsConfirming(it) and "|cffff6040Точно?|r" or "Выбросить")
+                r.act:SetText(BB.IsConfirming(it) and ("|cffff6040" .. L("Sure?") .. "|r") or L("Delete"))
             else
-                r.act:SetText(mark and "Продать |cffffd100*|r" or "Продать")
+                r.act:SetText(mark and (L("Sell") .. " |cffffd100*|r") or L("Sell"))
             end
             r.more:SetGlyphState(nil)
             r:Show()
@@ -347,11 +347,11 @@ local function FillOffers(all)
     end
     for i = #list + 1, #orows do orows[i]:Hide() end
     P.oEmpty:SetShown(#list == 0)
-    P.oEmpty:SetText(#all == 0 and "Нечего предложить." or "В этом фильтре пусто.")
+    P.oEmpty:SetText(#all == 0 and L("Nothing to suggest.") or L("Nothing here for this filter."))
     local hidden = #list - maxRows
     if hidden > 0 then
         P.oMore:ClearAllPoints(); P.oMore:SetPoint("TOPLEFT", 10, y - 4)
-        P.oMore:SetText("и ещё " .. hidden .. " - в полном окне"); P.oMore:Show()
+        P.oMore:SetText(L("and %d more - in the full window", hidden)); P.oMore:Show()
     else
         P.oMore:Hide()
     end
@@ -371,7 +371,7 @@ function BB.RefreshMerchantPanel()
     local total, live = 0, 0
     for _, s in ipairs(sold) do if not s.returned then total = total + s.price; live = live + 1 end end
     local list = BB.Candidates(BB.ScanBags())
-    tabBtn.tip = ("продано %d предм. на %s\nпредложений: %d"):format(live, BB.Money(total), #list)
+    tabBtn.tip = L("sold %d items for %s", live, BB.Money(total)) .. "\n" .. L("suggestions: %d", #list)
     local anchor = MerchantFrame and MerchantFrame:IsShown() and MerchantFrame or nil
 
     if BB.cdb.panelCollapsed then
@@ -394,8 +394,8 @@ function BB.RefreshMerchantPanel()
     P:Show()
 
     local t = panelTab or "sold"
-    BB.SetTabText(P, "sold", live > 0 and ("Автопродажа (" .. live .. ")") or "Автопродажа")
-    BB.SetTabText(P, "offer", "Предложения (" .. #list .. ")")
+    BB.SetTabText(P, "sold", live > 0 and (L("Auto-sell") .. " (" .. live .. ")") or L("Auto-sell"))
+    BB.SetTabText(P, "offer", L("Offers") .. " (" .. #list .. ")")
     BB.SelectTab(P, t)
 
     local isSold = t == "sold"
@@ -405,12 +405,12 @@ function BB.RefreshMerchantPanel()
     if isSold then
         P.total:SetFontObject(GameFontHighlightLarge)
         P.total:SetText("+" .. BB.Money(total))
-        P.sub:SetText(("продано %d предм."):format(live))
+        P.sub:SetText(L("sold %d items", live))
         FillSold(sold, pending, live)
     else
         local free, all = BB.FreeSlots()
         P.total:SetFontObject(GameFontHighlight)
-        P.total:SetText(("Свободно: %s%d|r из %d"):format(free == 0 and "|cffff6a4a" or "|cffffffff", free, all))
+        P.total:SetText(L("Free: %s%d|r of %d", free == 0 and "|cffff6a4a" or "|cffffffff", free, all))
         P.sub:SetText("")
         FillOffers(list)
     end

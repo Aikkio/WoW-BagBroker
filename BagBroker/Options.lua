@@ -1,5 +1,5 @@
--- Страница BagBroker в «Параметрах» игры: сами настройки живут во вкладке «Настройки»
--- окна BagBroker, здесь только переход туда.
+-- BagBroker page in the game options: the settings themselves live in the Settings tab
+-- of the BagBroker window, this page only links to it.
 local _, BB = ...
 
 function BB.InitOptions()
@@ -11,7 +11,7 @@ function BB.InitOptions()
     local open = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     open:SetSize(220, 26)
     open:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -16)
-    open:SetText("Открыть настройки BagBroker")
+    open:SetText(BB.L("Open BagBroker settings"))
     open:SetScript("OnClick", function() BB.OpenOptions(true) end)
     panel:SetScript("OnShow", function() if not InCombatLockdown() then BB.OpenOptions(true) end end)
     local category = Settings.RegisterCanvasLayoutCategory(panel, "BagBroker")

@@ -1,7 +1,7 @@
--- Действия: выбросить, отметить на продажу, защитить, продать сейчас.
+-- Actions: delete, mark for sale, protect, sell now.
 local _, BB = ...
 
--- Предмет в слоте всё ещё тот, что показан в окне?
+-- Is the item in the slot still the one shown in the window?
 local function SameItem(it)
     if GetCursorInfo() ~= nil then return false end
     local ci = C_Container.GetContainerItemInfo(it.bag, it.slot)
@@ -21,7 +21,7 @@ function BB.IsConfirming(it)
     return t and t > GetTime()
 end
 
--- Возвращает true, если предмет удалён. force - подтверждение уже получено (окно-вопрос).
+-- Returns true if the item was deleted. force: confirmation already given (popup).
 function BB.Delete(it, force)
     if not it or not SameItem(it) then BB.Refresh(); return false end
     if BB.P.protect[it.itemID] or it.quality > BB.QUALITY_MAX_LISTED then return false end
@@ -38,7 +38,7 @@ function BB.Delete(it, force)
     if kind ~= "item" or id ~= it.itemID then ClearCursor(); return false end
     DeleteCursorItem()
     if GetCursorInfo() ~= nil then ClearCursor(); return false end
-    BB.Print("выброшено: " .. (it.link or it.name) .. (it.count > 1 and (" x" .. it.count) or ""))
+    BB.Print(BB.L("deleted: %s", (it.link or it.name) .. (it.count > 1 and (" x" .. it.count) or "")))
     BB.Refresh()
     return true
 end
@@ -57,9 +57,9 @@ function BB.Protect(itemID, on)
     BB.Refresh()
 end
 
--- Торговец открыт по событиям (а не по MerchantFrame: его могут заменить другие аддоны).
+-- Merchant state comes from events, not MerchantFrame (other addons may replace it).
 BB.merchantOpen = false
--- Если рядом открыт банк, почта, обмен или аукцион, UseContainerItem положит предмет туда, а не продаст.
+-- With a bank, mail, trade or auction window open, UseContainerItem would move the item there instead of selling it.
 local OTHER = { "BankFrame", "MailFrame", "SendMailFrame", "TradeFrame", "AuctionFrame", "AuctionHouseFrame", "GuildBankFrame" }
 function BB.OtherWindowOpen()
     for _, n in ipairs(OTHER) do
@@ -74,16 +74,16 @@ end
 function BB.SellNow(it)
     if not BB.MerchantOpen() or not SameItem(it) or it.hasNoValue then return false end
     C_Container.UseContainerItem(it.bag, it.slot)
-    if BB.RecordSale then BB.RecordSale(it, "руч.") end
+    if BB.RecordSale then BB.RecordSale(it, "manual") end
     BB.Refresh()
     return true
 end
 
--- Выброс из меню: там нет второго клика, поэтому спрашиваем окном.
+-- Deleting from a menu has no second click, so ask with a popup.
 StaticPopupDialogs.BAGBROKER_DELETE_ITEM = {
-    text = "Выбросить %s?",
-    button1 = YES or "Да",
-    button2 = NO or "Нет",
+    text = "",
+    button1 = YES,
+    button2 = NO,
     OnAccept = function(self, data) BB.Delete(data or self.data, true) end,
     timeout = 0, whileDead = 1, hideOnEscape = 1, showAlert = 1, preferredIndex = 3,
 }
@@ -92,6 +92,7 @@ function BB.DeleteAsk(it)
     if not it then return end
     if BB.NeedsConfirm(it) then
         local label = (it.link or it.name or "?") .. ((it.count or 1) > 1 and (" x" .. it.count) or "")
+        StaticPopupDialogs.BAGBROKER_DELETE_ITEM.text = BB.L("Delete %s?")
         StaticPopup_Show("BAGBROKER_DELETE_ITEM", label, nil, it)
     else
         BB.Delete(it, true)

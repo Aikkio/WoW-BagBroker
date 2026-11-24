@@ -1,13 +1,13 @@
--- Сканер сумок: что лежит, сколько стоит, что можно предложить и что продать.
+-- Bag scanner: what is there, what it is worth, what to suggest and what to sell.
 local _, BB = ...
 
 local CLASS_ARMOR, CLASS_WEAPON, CLASS_CONSUMABLE = 4, 2, 0
 
-local ARMOR = { -- subclass: 1 ткань, 2 кожа, 3 кольчуга, 4 латы, 6 щит
+local ARMOR = { -- subclass: 1 cloth, 2 leather, 3 mail, 4 plate, 6 shield
     WARRIOR = {1,2,3,4,6}, PALADIN = {1,2,3,4,6}, HUNTER = {1,2,3}, SHAMAN = {1,2,3,6},
     ROGUE = {1,2}, DRUID = {1,2}, PRIEST = {1}, MAGE = {1}, WARLOCK = {1},
 }
-local WEAPON = { -- 0 топор, 1 2р топор, 2 лук, 3 ружьё, 4 булава, 5 2р булава, 6 древковое, 7 меч, 8 2р меч, 10 посох, 13 кистевое, 15 кинжал, 16 метательное, 18 арбалет, 19 жезл
+local WEAPON = { -- 0 axe, 1 2h axe, 2 bow, 3 gun, 4 mace, 5 2h mace, 6 polearm, 7 sword, 8 2h sword, 10 staff, 13 fist, 15 dagger, 16 thrown, 18 crossbow, 19 wand
     WARRIOR = {0,1,2,3,4,5,6,7,8,10,13,15,16,18},
     PALADIN = {0,1,4,5,6,7,8},
     HUNTER  = {0,1,2,3,6,7,8,10,13,15,16,18},
@@ -58,20 +58,20 @@ function BB.ClassCanUse(it)
     return true
 end
 
--- Сработало ли правило автопродажи; возвращает краткую причину.
+-- Does an auto-sell rule match? Returns the rule key.
 function BB.RuleMatch(it)
     local R = BB.P.rules
     local isGear = it.classID == CLASS_ARMOR or it.classID == CLASS_WEAPON
     if R.junk and it.quality == 0 then
-        if not (R.junkGear and isGear) then return "хлам" end
+        if not (R.junkGear and isGear) then return "junk" end
     end
     if it.quality and it.quality <= 2 and isGear and it.isBound then
-        if R.unusable and not BB.ClassCanUse(it) then return "не для класса" end
-        if R.lowGear and (it.reqLevel or 0) > 0 and (it.reqLevel + 10) <= UnitLevel("player") then return "низкий уровень" end
+        if R.unusable and not BB.ClassCanUse(it) then return "unusable" end
+        if R.lowGear and (it.reqLevel or 0) > 0 and (it.reqLevel + 10) <= UnitLevel("player") then return "lowGear" end
     end
     if R.food and it.classID == CLASS_CONSUMABLE and (it.subclassID == 5 or it.subclassID == 1) then
         local lvl = math.max(it.reqLevel or 0, it.itemLevel or 0)
-        if lvl > 0 and (lvl + 10) <= UnitLevel("player") then return "слабая еда/зелье" end
+        if lvl > 0 and (lvl + 10) <= UnitLevel("player") then return "food" end
     end
     return nil
 end
@@ -142,7 +142,7 @@ function BB.MarkOf(itemID)
     return nil
 end
 
--- Что продаём у торговца: отметки + правила. Возвращает очередь и «ждёт решения».
+-- What to sell at a vendor: marks + rules. Returns the queue and the items waiting for a decision.
 function BB.SellQueue(items)
     local queue, pending = {}, {}
     for _, it in ipairs(items) do
@@ -153,11 +153,11 @@ function BB.SellQueue(items)
         if ok then
             local reason
             if mark then
-                reason = mark == "always" and "∞" or "1"
+                reason = mark == "always" and "always" or "once"
             else
                 local r = BB.RuleMatch(it)
-                if r and not it.aucWins then reason = "П" end
-                if r == "хлам" and reason then reason = "Х" end
+                if r and not it.aucWins then reason = "rule" end
+                if r == "junk" and reason then reason = "junk" end
             end
             if reason then
                 it.reason = reason

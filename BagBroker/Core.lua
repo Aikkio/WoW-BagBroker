@@ -1,4 +1,4 @@
--- BagBroker: ядро, сохранения, профили, общие утилиты.
+-- BagBroker: core, saved data, profiles, shared utilities.
 local ADDON, BB = ...
 _G.BagBroker = BB
 
@@ -7,22 +7,23 @@ BB.version = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadat
 local _, _, _, interfaceVersion = GetBuildInfo()
 BB.isForever = interfaceVersion and interfaceVersion >= 16000 and interfaceVersion < 17000
 
-BB.QUALITY_MAX_LISTED = 2          -- в списке показываем до «Необычного» включительно
+BB.QUALITY_MAX_LISTED = 2          -- listed items go up to Uncommon quality
 BB.HEARTHSTONE = 6948
 BB.OWN = "__own"
 
 local DEFAULT_SETTINGS = {
-    ahCut = 0.05,            -- комиссия с продажи на аукционе
-    depositHours = 8,        -- срок для расчёта залога
-    minGainSilver = 5,       -- аук выгоднее, если разница не меньше N серебра
-    minGainPct = 10,         -- ... и не меньше N% от цены торговца
-    staleDays = 7,           -- цена устарела через N дней
-    autoCompact = true,      -- компактное окно, когда сумки забиты
+    ahCut = 0.05,            -- auction house cut
+    depositHours = 8,        -- auction deposit duration used for the estimate
+    minGainSilver = 5,       -- auction wins if it pays at least N silver more
+    minGainPct = 10,         -- ... and at least N% of the vendor price
+    staleDays = 7,           -- auction price is stale after N days
+    autoCompact = true,      -- compact window when bags are full
     showInCombat = true,
-    confirmDeleteQuality = 2,-- с какого качества «Выбросить» требует второго клика
-    confirmSellQuality = 3,  -- с какого качества продажа ждёт решения в панели
+    confirmDeleteQuality = 2,-- quality from which Delete needs a second click
+    confirmSellQuality = 3,  -- quality from which a sale waits for a decision in the panel
     merchantPanel = true,
     style = "auto",          -- auto | native | eui
+    locale = "auto",         -- auto | enUS | esES | ruRU
 }
 
 local DEFAULT_RULES = { junk = true, junkGear = false, unusable = true, lowGear = false, food = false }
@@ -54,6 +55,7 @@ function BB.InitDB()
     BagBrokerCharDB = BagBrokerCharDB or {}
     local db, cdb = BagBrokerDB, BagBrokerCharDB
     db.settings = CopyDefaults(db.settings or {}, DEFAULT_SETTINGS)
+    BB.SetLocale(db.settings.locale)
     db.profiles = db.profiles or {}
     db.chars = db.chars or {}
     db.newCharProfile = db.newCharProfile or BB.OWN
@@ -167,7 +169,7 @@ SlashCmdList.BAGBROKER = function(msg)
     elseif msg == "reset" then
         BB.cdb.pos = {}
         BB.ResetPositions()
-        BB.Print("позиции окон сброшены")
+        BB.Print(BB.L("window positions reset"))
     else
         BB.ToggleWindow()
     end

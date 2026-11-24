@@ -1,5 +1,6 @@
--- Окна: полное и компактное, меню «Продать», правила автопродажи.
+-- Windows: full and compact, the Sell menu, auto-sell rules.
 local _, BB = ...
+local L = BB.L
 
 local W, C, menu
 local tab = "bags"
@@ -59,7 +60,7 @@ local function SetIcon(b, it)
 end
 BB.SetItemIcon = SetIcon
 
-local MENU_W, LINE_H = 230, 22
+local MENU_W, LINE_H = 250, 22
 
 local function CreateMenu()
     menu = CreateFrame("Frame", "BagBrokerSellMenu", UIParent, "BackdropTemplate")
@@ -97,33 +98,33 @@ local function CreateMenu()
         return b
     end
 
-    -- extra: { noSellNow = true, protect = true, delete = true } - пункты для панели у торговца.
+    -- extra: { noSellNow = true, protect = true, delete = true } - entries for the vendor panel.
     function menu:Open(owner, it, extra)
         extra = extra or {}
         local mark = BB.MarkOf(it.itemID)
         local opts = {}
         if not extra.noSellNow and BB.MerchantOpen() and not it.absent and not it.hasNoValue then
-            opts[#opts + 1] = { "|cffffd100Продать сейчас|r", function() BB.SellNow(it) end }
+            opts[#opts + 1] = { "|cffffd100" .. L("Sell now") .. "|r", function() BB.SellNow(it) end }
             opts[#opts + 1] = { sep = true }
         end
-        opts[#opts + 1] = { "Только при следующем визите", function() BB.SetMark(it.itemID, mark == "once" and nil or "once") end, mark == "once" }
-        opts[#opts + 1] = { "Всегда продавать", function() BB.SetMark(it.itemID, mark == "always" and nil or "always") end, mark == "always" }
+        opts[#opts + 1] = { L("Next visit only"), function() BB.SetMark(it.itemID, mark == "once" and nil or "once") end, mark == "once" }
+        opts[#opts + 1] = { L("Always sell"), function() BB.SetMark(it.itemID, mark == "always" and nil or "always") end, mark == "always" }
         if mark then
-            opts[#opts + 1] = { "|cffaaaaaaНе продавать|r", function() BB.SetMark(it.itemID, nil) end }
+            opts[#opts + 1] = { "|cffaaaaaa" .. L("Don't sell") .. "|r", function() BB.SetMark(it.itemID, nil) end }
         end
         if extra.protect or extra.delete then opts[#opts + 1] = { sep = true } end
         if extra.protect then
-            opts[#opts + 1] = { "Защитить - не предлагать", function() BB.Protect(it.itemID, true) end }
+            opts[#opts + 1] = { L("Protect - don't offer"), function() BB.Protect(it.itemID, true) end }
         end
         if extra.delete and not it.absent then
-            opts[#opts + 1] = { "|cffff8a5cВыбросить|r", function() BB.DeleteAsk(it) end }
+            opts[#opts + 1] = { "|cffff8a5c" .. L("Delete") .. "|r", function() BB.DeleteAsk(it) end }
         end
 
         local r, g, b = QColor(it.quality)
         self:Render(owner, opts, { title = it.name or ("item:" .. it.itemID), r = r, g = g, b = b, side = extra.side })
     end
 
-    -- Общая отрисовка: пункты { label, fn, checked } или { sep = true }.
+    -- Shared rendering: entries { label, fn, checked } or { sep = true }.
     -- o: { title, r, g, b, side, width }
     function menu:Render(owner, opts, o)
         o = o or {}
@@ -190,13 +191,13 @@ local function CreateRow(i)
     r.age = BB.Text(r, "GameFontDisableSmall")
     r.age:SetPoint("BOTTOMLEFT", COL_AH, 6); r.age:SetJustifyH("LEFT")
 
-    r.shield = BB.GlyphButton(r, "shield", 24, "Защитить")
+    r.shield = BB.GlyphButton(r, "shield", 24, L("Protect"))
     r.shield:SetPoint("RIGHT", -4, 0)
-    r.sell = BB.DropButton(r, "Продать", 104, 22)
+    r.sell = BB.DropButton(r, L("Sell"), 104, 22)
     r.sell:SetPoint("RIGHT", r.shield, "LEFT", -4, 0)
-    r.trash = BB.GlyphButton(r, "trash", 24, "Выбросить")
+    r.trash = BB.GlyphButton(r, "trash", 24, L("Delete"))
     r.trash:SetPoint("RIGHT", r.sell, "LEFT", -4, 0)
-    r.unprot = BB.Button(r, "Снять защиту", 130, 22)
+    r.unprot = BB.Button(r, L("Remove protection"), 150, 22)
     r.unprot:SetPoint("RIGHT", -4, 0)
 
     r.trash:SetScript("OnClick", function() BB.Delete(r.item) end)
@@ -209,7 +210,10 @@ local function CreateRow(i)
     return r
 end
 
-local MARK_TEXT = { once = "|cffffd100продам 1 раз|r", always = "|cffffd100продаю всегда|r" }
+local function MarkText(mark)
+    if mark == "once" then return "|cffffd100" .. L("will sell once") .. "|r" end
+    if mark == "always" then return "|cffffd100" .. L("selling always") .. "|r" end
+end
 
 local function FillRow(r, it, mode)
     r.item = it
@@ -218,21 +222,21 @@ local function FillRow(r, it, mode)
     r.name:SetTextColor(QColor(it.quality))
     local mark = BB.MarkOf(it.itemID)
     local parts = {}
-    if mode ~= "prot" and mode ~= "guard" and MARK_TEXT[mark] then parts[#parts + 1] = MARK_TEXT[mark] end
-    if it.absent then parts[#parts + 1] = "|cff888888нет в сумках|r" end
+    if mode ~= "prot" and mode ~= "guard" and MarkText(mark) then parts[#parts + 1] = MarkText(mark) end
+    if it.absent then parts[#parts + 1] = "|cff888888" .. L("not in bags") .. "|r" end
     local notes = BB.NotesText(it)
     if notes ~= "" then parts[#parts + 1] = notes end
     local tag = table.concat(parts, "|cff606060  ·  |r")
     local confirming = not it.absent and mode ~= "prot" and mode ~= "guard" and BB.IsConfirming(it)
-    if confirming then tag = "|cffff6040нажми корзину ещё раз|r" end
+    if confirming then tag = "|cffff6040" .. L("press the trash can again") .. "|r" end
     r.tag:SetText(tag)
 
     if mode == "guard" then
-        r.vendor:SetText("|cff888888пресет|r"); r.ah:SetText(""); r.age:SetText("")
+        r.vendor:SetText("|cff888888" .. L("preset") .. "|r"); r.ah:SetText(""); r.age:SetText("")
     elseif it.absent or mode == "prot" then
         r.vendor:SetText(""); r.ah:SetText(""); r.age:SetText("")
     else
-        r.vendor:SetText(it.hasNoValue and "|cff888888не купит|r" or BB.Money(it.vendor))
+        r.vendor:SetText(it.hasNoValue and ("|cff888888" .. L("won't buy") .. "|r") or BB.Money(it.vendor))
         if it.aucWins then r.vendor:SetTextColor(0.6, 0.6, 0.6) else r.vendor:SetTextColor(1, 1, 1) end
         r.ah:SetText(it.ahNet and ((it.exact and "" or "~ ") .. BB.Money(it.ahNet)) or "|cff888888-|r")
         if it.aucWins then r.ah:SetTextColor(0.62, 0.82, 0.96) else r.ah:SetTextColor(0.6, 0.6, 0.6) end
@@ -246,18 +250,19 @@ local function FillRow(r, it, mode)
     r.sell:SetShown(not isProt and not isGuard)
     r.trash:SetShown(not isProt and not isGuard and not it.absent)
     if not isProt and not isGuard then
-        r.sell:SetText(mark == "once" and "1 раз" or mark == "always" and "Всегда" or "Продать")
+        r.sell:SetText(mark == "once" and L("Once") or mark == "always" and L("Always") or L("Sell"))
         r.sell:SetEnabled(not it.hasNoValue)
         r.sell:PaintArrow()
         r.shield:SetGlyphState(nil)
-        r.trash.tip = confirming and "Нажми ещё раз, чтобы выбросить" or "Выбросить"
+        r.trash.tip = confirming and L("Press again to delete") or L("Delete")
         r.trash:SetGlyphState(confirming and "danger" or nil)
     end
     r:Show()
 end
 
--- («Защищённые»). defs: { key, label [, child = { key, label }] } - вложенная галочка
--- видна только при включённой родительской. cols - число колонок.
+-- Checkbox panel above the list: auto-sell rules ("For sale") and protection presets
+-- ("Protected"). defs: { key, label [, child = { key, label }] }: the nested checkbox
+-- is visible only while its parent is on. cols: number of columns.
 local function CreateRulesPanel(parent, title, defs, store, cols)
     local p = CreateFrame("Frame", nil, parent)
     p:SetSize(CHILD_W, 40)
@@ -311,22 +316,22 @@ local function CreateRulesPanel(parent, title, defs, store, cols)
 end
 
 local function CreateSellRules(parent)
-    return CreateRulesPanel(parent, "Правила автопродажи", {
-        { "junk", "Хлам (серые предметы)", child = { "junkGear", "кроме экипировки" } },
-        { "unusable", "Персональная экипировка не для моего класса" },
-        { "lowGear", "Персональная экипировка на 10+ ур. ниже меня" },
-        { "food", "Еда, вода и зелья на 10+ ур. ниже меня" },
+    return CreateRulesPanel(parent, L("Auto-sell rules"), {
+        { "junk", L("Junk (gray items)"), child = { "junkGear", L("except equipment") } },
+        { "unusable", L("Soulbound gear your class can't use") },
+        { "lowGear", L("Soulbound gear 10+ levels below you") },
+        { "food", L("Food, drink and potions 10+ levels below you") },
     }, function() return BB.P.rules end, 1)
 end
 
 local function CreateGuardRules(parent)
-    return CreateRulesPanel(parent, "Не предлагать", {
-        { "quest", "Квестовые предметы" },
-        { "pvp", "Знаки чести и валюту" },
-        { "container", "Нераскрытые контейнеры" },
-        { "key", "Ключи" },
-        { "tool", "Инструменты профессий" },
-        { "reagent", "Реагенты моих профессий" },
+    return CreateRulesPanel(parent, L("Don't offer"), {
+        { "quest", L("Quest items") },
+        { "pvp", L("Honor marks and currency") },
+        { "container", L("Unopened containers") },
+        { "key", L("Keys") },
+        { "tool", L("Profession tools") },
+        { "reagent", L("Reagents for my professions") },
     }, function() return BB.P.guard end, 2)
 end
 
@@ -343,28 +348,28 @@ local function CreateWide()
 
     W.free = BB.Text(W, "GameFontHighlight")
     W.free:SetPoint("TOPLEFT", 14, -36)
-    W.mode = BB.Button(W, "Компактно", 100, 22)
+    W.mode = BB.Button(W, L("Compact"), 110, 22)
     W.mode:SetPoint("TOPRIGHT", -10, -30)
     W.mode:SetScript("OnClick", function() BB.ShowWindow("compact") end)
     W.filter = BB.Segmented(W, {
-        { "all", "Все" },
-        { "vendor", "Торговцу" },
-        { "auc", function(n) return n > 0 and ("Аукцион (" .. n .. ")") or "Аукцион" end },
+        { "all", L("All") },
+        { "vendor", L("To vendor") },
+        { "auc", function(n) return n > 0 and L("Auction (%d)", n) or L("Auction") end },
     }, 96, function() return BB.cdb.offerFilter or "all" end, function(v) BB.cdb.offerFilter = v end)
     W.filter:SetPoint("TOPLEFT", 170, -31)
     W.status = BB.Text(W, "GameFontDisableSmall")
     W.status:SetPoint("TOPRIGHT", W.Inset, "TOPRIGHT", -30, -8)
 
-    BB.CreateTabs(W, { { "bags", "Сумки" }, { "sell", "На продажу" }, { "prot", "Защищённые" },
-        { "settings", "Настройки", right = true } }, SetTab)
+    BB.CreateTabs(W, { { "bags", L("Bags") }, { "sell", L("For sale") }, { "prot", L("Protected") },
+        { "settings", L("Settings"), right = true } }, SetTab)
 
     local inset = W.Inset
     local h1 = BB.Text(inset, "GameFontDisableSmall")
-    h1:SetPoint("TOPLEFT", 6 + 42, -8); h1:SetText("ПРЕДМЕТ, ДЕШЁВЫЕ СВЕРХУ")
+    h1:SetPoint("TOPLEFT", 6 + 42, -8); h1:SetText(L("ITEM, CHEAPEST FIRST"))
     local h2 = BB.Text(inset, "GameFontDisableSmall")
-    h2:SetPoint("TOPRIGHT", inset, "TOPLEFT", 6 + COL_VENDOR, -8); h2:SetText("ТОРГОВЕЦ")
+    h2:SetPoint("TOPRIGHT", inset, "TOPLEFT", 6 + COL_VENDOR, -8); h2:SetText(L("VENDOR"))
     local h3 = BB.Text(inset, "GameFontDisableSmall")
-    h3:SetPoint("TOPLEFT", 6 + COL_AH, -8); h3:SetText("АУКЦИОН, ЧИСТЫМИ")
+    h3:SetPoint("TOPLEFT", 6 + COL_AH, -8); h3:SetText(L("AUCTION, NET"))
     W.headers = { h1, h2, h3 }
 
     local sc = CreateFrame("ScrollFrame", "BagBrokerWideScroll", inset, "UIPanelScrollFrameTemplate")
@@ -387,7 +392,7 @@ local function CreateWide()
 
     W.footer = BB.Text(W, "GameFontHighlightSmall")
     W.footer:SetPoint("BOTTOMLEFT", 14, 10)
-    W.cheap = BB.Button(W, "Выбросить самый дешёвый", 210, 22)
+    W.cheap = BB.Button(W, L("Delete cheapest item"), 230, 22)
     W.cheap:SetPoint("BOTTOMRIGHT", -8, 5)
     W.cheap:SetScript("OnClick", function() if W.first then BB.Delete(W.first) end end)
 
@@ -442,7 +447,7 @@ local function ProtRows(items, guarded)
 end
 
 local function RefreshWide(items, list, free, total, guarded)
-    W.free:SetText(("Свободно: %s%d|r из %d"):format(free == 0 and "|cffff6a4a" or "|cffffffff", free, total))
+    W.free:SetText(L("Free: %s%d|r of %d", free == 0 and "|cffff6a4a" or "|cffffffff", free, total))
     local queue = BB.SellQueue(items)
     local qsum = 0
     for _, it in ipairs(queue) do qsum = qsum + it.vendor end
@@ -451,14 +456,14 @@ local function RefreshWide(items, list, free, total, guarded)
     local protRows = ProtRows(items, guarded)
     local manualProt = 0
     for _, it in ipairs(protRows) do if not it.guardRow then manualProt = manualProt + 1 end end
-    BB.SetTabText(W, "bags", "Сумки (" .. #list .. ")")
-    BB.SetTabText(W, "sell", "На продажу (" .. #sellRows .. ")")
-    BB.SetTabText(W, "prot", "Защищённые (" .. manualProt .. ")")
+    BB.SetTabText(W, "bags", L("Bags") .. " (" .. #list .. ")")
+    BB.SetTabText(W, "sell", L("For sale") .. " (" .. #sellRows .. ")")
+    BB.SetTabText(W, "prot", L("Protected") .. " (" .. manualProt .. ")")
     BB.SelectTab(W, tab)
 
     local scan = BB.db.lastScanTime
-    W.status:SetText(BB.HasAuction() and ("Auctionator, скан " .. (scan and date("%d.%m %H:%M", scan) or "-"))
-        or "Auctionator не найден - только цены торговца")
+    W.status:SetText(BB.HasAuction() and L("Auctionator, scan %s", scan and date("%d.%m %H:%M", scan) or "-")
+        or L("Auctionator not found - vendor prices only"))
 
     W.filter:SetShown(tab == "bags"); W.status:SetShown(tab == "bags")
     W.filter:Sync(BB.CountAuc(list))
@@ -473,11 +478,11 @@ local function RefreshWide(items, list, free, total, guarded)
     W.cheap:SetShown(tab ~= "settings")
     if tab == "sell" then
         local n = 0
-        for _, it in ipairs(queue) do if it.reason == "П" or it.reason == "Х" then n = n + 1 end end
-        W.rules.count:SetText(n > 0 and ("сейчас уйдёт: " .. n) or "")
+        for _, it in ipairs(queue) do if it.reason == "rule" or it.reason == "junk" then n = n + 1 end end
+        W.rules.count:SetText(n > 0 and L("will sell now: %d", n) or "")
         y = W.rules:Sync() + 4
     elseif tab == "prot" then
-        W.guard.count:SetText(#(guarded or {}) > 0 and ("скрыто: " .. #guarded) or "")
+        W.guard.count:SetText(#(guarded or {}) > 0 and L("hidden: %d", #guarded) or "")
         y = W.guard:Sync() + 4
     elseif tab == "settings" then
         y = W.settings:Sync()
@@ -496,28 +501,28 @@ local function RefreshWide(items, list, free, total, guarded)
     W.empty:ClearAllPoints()
     W.empty:SetPoint("TOPLEFT", 8, -y - 10)
     if #data == 0 and tab ~= "settings" then
-        W.empty:SetText(tab == "prot" and "Защищённых предметов нет."
-            or tab == "sell" and "Вручную ничего не отмечено."
-            or (#list > 0 and "В этом фильтре пусто." or "В сумках нечего предложить."))
+        W.empty:SetText(tab == "prot" and L("No protected items.")
+            or tab == "sell" and L("Nothing marked manually.")
+            or (#list > 0 and L("Nothing here for this filter.") or L("Nothing to suggest in your bags.")))
         W.empty:Show()
     else
         W.empty:Hide()
     end
     W.child:SetHeight(math.max(10, y + #data * ROW_H))
 
-    W.footer:SetText(("У торговца уйдёт: |cffffffff%d|r предм., %s"):format(#queue, BB.Money(qsum)))
+    W.footer:SetText(L("Will sell at vendor: |cffffffff%d|r items, %s", #queue, BB.Money(qsum)))
     W.first = list[1]
     W.cheap:SetEnabled(list[1] ~= nil)
-    W.cheap:SetText(list[1] and BB.IsConfirming(list[1]) and "|cffff6040Точно выбросить?|r" or "Выбросить самый дешёвый")
+    W.cheap:SetText(list[1] and BB.IsConfirming(list[1]) and ("|cffff6040" .. L("Really delete?") .. "|r") or L("Delete cheapest item"))
 end
 
 local crow = {}
 local function CreateCompact()
-    C = BB.CreateWindow("BagBrokerCompact", "Сумки полны", 290, 256)
+    C = BB.CreateWindow("BagBrokerCompact", L("Bags full"), 290, 256)
     BB.RestorePosition(C, "BagBrokerCompact", "BOTTOMRIGHT", nil, "BOTTOMRIGHT", -280, 220)
     C.free = BB.Text(C, "GameFontHighlight")
     C.free:SetPoint("TOPLEFT", 14, -36)
-    C.expand = BB.Button(C, "Развернуть", 100, 22)
+    C.expand = BB.Button(C, L("Expand"), 110, 22)
     C.expand:SetPoint("TOPRIGHT", -10, -30)
     C.expand:SetScript("OnClick", function() BB.ShowWindow("wide") end)
     C.Inset:SetPoint("BOTTOMRIGHT", -6, 26)
@@ -538,9 +543,9 @@ local function CreateCompact()
         r:SetSize(264, 26)
         r:SetPoint("TOP", big, "BOTTOM", 0, -6 - (i - 1) * 28)
         r.icon = ItemIcon(r, 24); r.icon:SetPoint("LEFT")
-        r.shield = BB.GlyphButton(r, "shield", 22, "Защитить")
+        r.shield = BB.GlyphButton(r, "shield", 22, L("Protect"))
         r.shield:SetPoint("RIGHT")
-        r.trash = BB.GlyphButton(r, "trash", 22, "Выбросить")
+        r.trash = BB.GlyphButton(r, "trash", 22, L("Delete"))
         r.trash:SetPoint("RIGHT", r.shield, "LEFT", -2, 0)
         r.price = BB.Text(r, "GameFontHighlightSmall")
         r.price:SetPoint("RIGHT", r.trash, "LEFT", -6, 0)
@@ -568,18 +573,18 @@ local function CreateCompact()
 end
 
 local function RefreshCompact(list, free, total)
-    C.free:SetText(("Свободно: %s%d|r из %d"):format(free == 0 and "|cffff6a4a" or "|cffffffff", free, total))
-    BB.SetTitle(C, free == 0 and "Сумки полны" or "BagBroker")
+    C.free:SetText(L("Free: %s%d|r of %d", free == 0 and "|cffff6a4a" or "|cffffffff", free, total))
+    BB.SetTitle(C, free == 0 and L("Bags full") or "BagBroker")
     local first = list[1]
     C.first = first
     if first then
         C.big:Enable()
-        C.big.l1:SetText(BB.IsConfirming(first) and "|cffff6040Точно выбросить?|r" or "Выбросить самый дешёвый")
+        C.big.l1:SetText(BB.IsConfirming(first) and ("|cffff6040" .. L("Really delete?") .. "|r") or L("Delete cheapest item"))
         local r, g, b = QColor(first.quality)
         C.big.l2:SetText(("|cff%02x%02x%02x%s|r x%d, %s"):format(r * 255, g * 255, b * 255, first.name, first.count, BB.Money(first.value)))
     else
         C.big:Disable()
-        C.big.l1:SetText("Нечего выбросить")
+        C.big.l1:SetText(L("Nothing to delete"))
         C.big.l2:SetText("")
     end
     for i = 1, 4 do
@@ -590,7 +595,7 @@ local function RefreshCompact(list, free, total)
             r.name:SetText(it.name); r.name:SetTextColor(QColor(it.quality))
             r.price:SetText(BB.Money(it.value))
             local confirming = BB.IsConfirming(it)
-            r.trash.tip = confirming and "Нажми ещё раз, чтобы выбросить" or "Выбросить"
+            r.trash.tip = confirming and L("Press again to delete") or L("Delete")
             r.trash:SetGlyphState(confirming and "danger" or nil)
             r.shield:SetGlyphState(nil)
             r:Show()
@@ -599,7 +604,7 @@ local function RefreshCompact(list, free, total)
         end
     end
     local more = math.max(0, #list - 5)
-    C.more.fs:SetText(more > 0 and ("Ещё " .. more .. ": продать, отметить, защитить  >") or "Открыть полное окно  >")
+    C.more.fs:SetText(more > 0 and L("%d more: sell, mark, protect  >", more) or L("Open full window  >"))
 end
 
 function BB.RefreshUI()
@@ -627,7 +632,7 @@ function BB.ShowWindow(mode, auto)
     BB.Refresh()
 end
 
--- above - поднять окно над «Параметрами» игры (вызов со страницы аддона там).
+-- above: raise the window over the game options (called from the addon page there).
 function BB.ShowTab(t, above)
     tab = t
     if above then W:SetFrameStrata("DIALOG") end
@@ -684,7 +689,7 @@ function BB.OpenItemMenu(owner, it, extra)
     if menu:IsShown() and menu.owner == owner then menu:Hide() else menu:Open(owner, it, extra) end
 end
 
--- Выпадающий список под кнопкой: options = { {value, label}, ... }.
+-- Drop-down list under a button: options = { {value, label}, ... }.
 function BB.OpenList(owner, options, current, onPick)
     if menu:IsShown() and menu.owner == owner then menu:Hide(); return end
     local opts = {}

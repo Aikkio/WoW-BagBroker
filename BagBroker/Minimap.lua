@@ -1,6 +1,7 @@
--- Кнопка у миникарты (LibDBIcon). EllesmereUI сам собирает такие кнопки в свою панель
--- у миникарты, без EUI она висит на краю карты, как у остальных аддонов.
+-- Minimap button (LibDBIcon). EllesmereUI collects such buttons into its own minimap panel;
+-- without EUI it sits on the minimap edge like other addons.
 local _, BB = ...
+local L = BB.L
 
 local ICON = "Interface\\Icons\\INV_Misc_Bag_08"
 local dbicon
@@ -14,19 +15,19 @@ local function Tooltip(tt)
         local sum = 0
         for _, it in ipairs(queue) do sum = sum + (it.vendor or 0) end
         local free, total = BB.FreeSlots()
-        tt:AddDoubleLine("Свободно в сумках", ("%d из %d"):format(free, total), 0.8, 0.8, 0.8, free == 0 and 1 or 1, free == 0 and 0.42 or 1, free == 0 and 0.29 or 1)
-        tt:AddDoubleLine("У торговца уйдёт", ("%d предм., %s"):format(#queue, BB.Money(sum)), 0.8, 0.8, 0.8, 1, 1, 1)
-        tt:AddDoubleLine("Предложений", tostring(#list), 0.8, 0.8, 0.8, 1, 1, 1)
+        tt:AddDoubleLine(L("Free bag slots"), L("%d of %d", free, total), 0.8, 0.8, 0.8, free == 0 and 1 or 1, free == 0 and 0.42 or 1, free == 0 and 0.29 or 1)
+        tt:AddDoubleLine(L("Will sell at vendor"), L("%d items, %s", #queue, BB.Money(sum)), 0.8, 0.8, 0.8, 1, 1, 1)
+        tt:AddDoubleLine(L("Suggestions"), tostring(#list), 0.8, 0.8, 0.8, 1, 1, 1)
         if list[1] then
             local r, g, b = C_Item.GetItemQualityColor(list[1].quality or 1)
-            tt:AddDoubleLine("Самый дешёвый", list[1].name, 0.8, 0.8, 0.8, r, g, b)
+            tt:AddDoubleLine(L("Cheapest"), list[1].name, 0.8, 0.8, 0.8, r, g, b)
         end
     end)
     if not ok then tt:AddLine(tostring(err), 1, 0.3, 0.3) end
     tt:AddLine(" ")
-    tt:AddLine("|cffffd100ЛКМ|r - окно BagBroker", 0.8, 0.8, 0.8)
-    tt:AddLine("|cffffd100Shift + ЛКМ|r - компактное окно", 0.8, 0.8, 0.8)
-    tt:AddLine("|cffffd100ПКМ|r - настройки", 0.8, 0.8, 0.8)
+    tt:AddLine("|cffffd100" .. L("Left click") .. "|r - " .. L("BagBroker window"), 0.8, 0.8, 0.8)
+    tt:AddLine("|cffffd100" .. L("Shift + left click") .. "|r - " .. L("compact window"), 0.8, 0.8, 0.8)
+    tt:AddLine("|cffffd100" .. L("Right click") .. "|r - " .. L("settings"), 0.8, 0.8, 0.8)
 end
 
 local function OnClick(_, button)

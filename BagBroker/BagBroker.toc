@@ -1,6 +1,8 @@
 ## Interface: 16001
 ## Title: BagBroker
-## Notes: Быстро освобождает сумки и сам продаёт хлам торговцу.
+## Notes: Frees up bag space fast and sells junk to vendors for you.
+## Notes-ruRU: Быстро освобождает сумки и сам продаёт хлам торговцу.
+## Notes-esES: Libera espacio en las bolsas y vende la basura al vendedor por ti.
 ## Author: Миша
 ## Version: 0.4.0-test
 ## OptionalDeps: Auctionator, EllesmereUI
@@ -12,6 +14,10 @@ Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Locale.lua
+Locales\ruRU.lua
+Locales\esES.lua
 
 Core.lua
 Skin.lua
