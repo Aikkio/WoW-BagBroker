@@ -1,0 +1,26 @@
+## Interface: 16001
+## Title: BagBroker
+## Notes: Быстро освобождает сумки и сам продаёт хлам торговцу.
+## Author: Миша
+## Version: 0.4.0-test
+## OptionalDeps: Auctionator, EllesmereUI
+## IconTexture: Interface\Icons\INV_Misc_Bag_08
+## SavedVariables: BagBrokerDB
+## SavedVariablesPerCharacter: BagBrokerCharDB
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Core.lua
+Skin.lua
+Prices.lua
+Scanner.lua
+Notes.lua
+Actions.lua
+UI.lua
+SettingsTab.lua
+Merchant.lua
+Minimap.lua
+Options.lua

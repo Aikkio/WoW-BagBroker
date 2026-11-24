@@ -1,0 +1,11 @@
+# ОС и редакторы
+Thumbs.db
+desktop.ini
+.DS_Store
+*.bak
+*.tmp
+.vscode/
+.idea/
+# Превью и временные файлы
+tools/*.png
+__pycache__/
